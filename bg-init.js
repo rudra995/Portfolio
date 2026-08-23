@@ -5,11 +5,10 @@
 const LIQUID_LAYER = 'splash-cursor';
 
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-const narrowViewport = window.matchMedia('(max-width: 640px)').matches;
 const moltenEl = document.getElementById('bg-molten');
 const liquidEl = document.getElementById('bg-liquid');
 
-if (!reduced && !narrowViewport && moltenEl && liquidEl) {
+if (!reduced && moltenEl && liquidEl) {
   document.body.classList.add('has-webgl-bg');
 
   import('./molten-metal.js')

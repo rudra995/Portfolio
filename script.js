@@ -363,6 +363,24 @@
       blurb: 'Event-driven backtesting engine simulating trade execution across a 4-stage pipeline, validated with 126 pytest tests.',
       tags: ['Python', 'FastAPI', 'PostgreSQL', 'Redis', 'Docker'],
       link: '#'
+    },
+    {
+      title: 'Placeholder Four',
+      blurb: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+      tags: ['Lorem', 'Ipsum', 'Dolor', 'Sit'],
+      link: '#'
+    },
+    {
+      title: 'Placeholder Five',
+      blurb: 'Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.',
+      tags: ['Lorem', 'Ipsum', 'Dolor'],
+      link: '#'
+    },
+    {
+      title: 'Placeholder Six',
+      blurb: 'Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.',
+      tags: ['Lorem', 'Ipsum', 'Dolor', 'Sit', 'Amet'],
+      link: '#'
     }
   ];
 
@@ -375,20 +393,29 @@
     modal.innerHTML =
       '<div class="project-modal-backdrop"></div>' +
       '<div class="project-modal-panel" role="dialog" aria-modal="true" aria-labelledby="projectModalTitle">' +
-      '<button type="button" class="project-modal-close" aria-label="Close">' +
-      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>' +
+      '<div class="project-modal-titlebar">' +
+      '<div class="traffic-lights">' +
+      '<button type="button" class="tl tl-close" aria-label="Close">' +
+      '<svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>' +
       '</button>' +
+      '<span class="tl tl-min" aria-hidden="true"></span>' +
+      '<span class="tl tl-zoom" aria-hidden="true"></span>' +
+      '</div>' +
+      '<span class="project-modal-window-title"></span>' +
+      '</div>' +
+      '<div class="project-modal-content">' +
       '<div class="project-modal-image"><span class="initials"></span></div>' +
       '<div class="project-modal-body">' +
       '<h3 class="project-modal-title" id="projectModalTitle"></h3>' +
       '<p class="project-modal-blurb"></p>' +
       '<div class="project-modal-tags"></div>' +
       '<a class="btn btn-primary project-modal-link" target="_blank" rel="noopener">View Project</a>' +
-      '</div></div>';
+      '</div></div></div>';
     document.body.appendChild(modal);
 
     const backdrop = modal.querySelector('.project-modal-backdrop');
-    const closeBtn = modal.querySelector('.project-modal-close');
+    const closeBtn = modal.querySelector('.tl-close');
+    const windowTitleEl = modal.querySelector('.project-modal-window-title');
     const imgEl = modal.querySelector('.project-modal-image .initials');
     const titleEl = modal.querySelector('.project-modal-title');
     const blurbEl = modal.querySelector('.project-modal-blurb');
@@ -403,6 +430,7 @@
       activeTrigger = triggerEl;
       onCloseExtra = onClose || null;
       imgEl.textContent = project.title.slice(0, 2).toUpperCase();
+      windowTitleEl.textContent = project.title;
       titleEl.textContent = project.title;
       blurbEl.textContent = project.blurb;
       tagsEl.innerHTML = '';
