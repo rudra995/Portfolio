@@ -179,6 +179,288 @@
     typeTerminal(reduced);
     initScrollHeadings(reduced);
     initPillNav();
+    initTiltedCard(reduced);
+    initGithubChart();
+    initDashboardCoverflow(reduced);
+  }
+
+  // Scroll-linked coverflow for the Dashboards section. Rather than hijacking wheel/touch
+  // events (janky, breaks trackpads and accessibility), the section is made tall in JS and
+  // pinned via CSS `position: sticky`; scroll progress through that extra height is mapped
+  // to a continuous "active slide" float, and every slide's transform is derived from its
+  // distance from that value. Scrolling further just keeps advancing progress, which reads
+  // as paging through the carousel before the section finally scrolls past.
+  function initDashboardCoverflow(reduced) {
+    const section = document.getElementById('dashboards');
+    const track = document.getElementById('dashboardTrack');
+    const dotsEl = document.getElementById('dashboardDots');
+    const heat = document.getElementById('cfHeat');
+    if (!section || !track) return;
+
+    if (heat && !heat.children.length) {
+      const frag = document.createDocumentFragment();
+      for (let i = 0; i < 48; i++) {
+        const cell = document.createElement('span');
+        cell.style.setProperty('--v', Math.round(15 + Math.random() * 70) + '%');
+        frag.appendChild(cell);
+      }
+      heat.appendChild(frag);
+    }
+
+    const slides = Array.from(track.children);
+    const count = slides.length;
+    if (!count) return;
+
+    if (reduced) {
+      section.classList.add('is-reduced');
+      return;
+    }
+
+    dotsEl.innerHTML = slides
+      .map((_, i) => '<button type="button" class="coverflow-dot" aria-label="Go to dashboard ' + (i + 1) + '"></button>')
+      .join('');
+    const dots = Array.from(dotsEl.children);
+
+    const VH_PER_SLIDE = 90;
+    const setHeight = () => {
+      section.style.height = (100 + (count - 1) * VH_PER_SLIDE) + 'vh';
+    };
+    setHeight();
+
+    let ticking = false;
+    const update = () => {
+      ticking = false;
+      const rect = section.getBoundingClientRect();
+      const scrollable = section.offsetHeight - window.innerHeight;
+      const progress = scrollable > 0 ? Math.min(Math.max(-rect.top / scrollable, 0), 1) : 0;
+      const active = progress * (count - 1);
+      const stageWidth = slides[0].offsetWidth;
+
+      slides.forEach((slide, i) => {
+        const offset = i - active;
+        const abs = Math.min(Math.abs(offset), 3);
+        const translateX = offset * (stageWidth * 0.62);
+        const rotateY = Math.max(-48, Math.min(48, -offset * 40));
+        const scale = Math.max(0.6, 1 - abs * 0.16);
+        const opacity = Math.max(0, 1 - abs * 0.45);
+        slide.style.transform =
+          'translate(-50%, -50%) translateX(' + translateX.toFixed(1) + 'px) rotateY(' + rotateY.toFixed(1) + 'deg) scale(' + scale.toFixed(3) + ')';
+        slide.style.opacity = opacity.toFixed(3);
+        slide.style.zIndex = String(Math.round(100 - abs * 10));
+        slide.style.pointerEvents = abs < 0.5 ? 'auto' : 'none';
+      });
+
+      const activeIndex = Math.max(0, Math.min(count - 1, Math.round(active)));
+      dots.forEach((d, i) => d.classList.toggle('is-active', i === activeIndex));
+    };
+
+    const onScroll = () => {
+      if (!ticking) { ticking = true; requestAnimationFrame(update); }
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', () => { setHeight(); onScroll(); });
+
+    dots.forEach((dot, i) => {
+      dot.addEventListener('click', () => {
+        const rect = section.getBoundingClientRect();
+        const scrollable = section.offsetHeight - window.innerHeight;
+        const sectionTop = window.scrollY + rect.top;
+        window.scrollTo({ top: sectionTop + (i / (count - 1)) * scrollable, behavior: 'smooth' });
+      });
+    });
+
+    update();
+  }
+
+  // GitHub contribution calendar, pulled live from a public, CORS-enabled mirror of
+  // the real contribution data (github-contributions-api.jogruber.de) — real per-day
+  // counts, not color buckets, so the total and hover tooltips match what GitHub itself
+  // shows on the profile page.
+  function initGithubChart() {
+    const mount = document.getElementById('githubChart');
+    const totalEl = document.getElementById('githubTotal');
+    if (!mount) return;
+
+    fetch('https://github-contributions-api.jogruber.de/v4/rudra995')
+      .then((r) => { if (!r.ok) throw new Error('bad response'); return r.json(); })
+      .then((data) => {
+        // The API doesn't guarantee chronological order across years, so sort explicitly
+        // before deriving "today" or bucketing into weeks.
+        const days = (data.contributions || []).slice().sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+        if (!days.length) throw new Error('no contribution data');
+
+        // The API pre-fills the whole current calendar year (future days included as
+        // zero), so anchor on the real current date rather than the dataset's max date
+        // to avoid a trailing chunk of not-yet-happened blank cells.
+        const maxDataDate = new Date(days[days.length - 1].date + 'T00:00:00');
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        const today = now < maxDataDate ? now : maxDataDate;
+        const cutoff = new Date(today);
+        cutoff.setDate(cutoff.getDate() - 364);
+
+        const recent = days.filter((d) => {
+          const t = new Date(d.date + 'T00:00:00');
+          return t >= cutoff && t <= today;
+        });
+        const total = recent.reduce((sum, d) => sum + d.count, 0);
+        totalEl.textContent = total.toLocaleString() + (total === 1 ? ' contribution' : ' contributions') + ' in the last year';
+
+        const firstDate = new Date(recent[0].date + 'T00:00:00');
+        const leadingPad = firstDate.getDay();
+
+        const weeks = [];
+        let week = new Array(leadingPad).fill(null);
+        recent.forEach((d) => {
+          week.push(d);
+          if (week.length === 7) { weeks.push(week); week = []; }
+        });
+        if (week.length) {
+          while (week.length < 7) week.push(null);
+          weeks.push(week);
+        }
+
+        const LEVEL_COLORS = [
+          'color-mix(in srgb, var(--color-text) 6%, transparent)',
+          'color-mix(in srgb, var(--color-accent) 32%, transparent)',
+          'color-mix(in srgb, var(--color-accent) 56%, transparent)',
+          'color-mix(in srgb, var(--color-accent) 80%, transparent)',
+          'var(--color-accent)'
+        ];
+
+        const grid = document.createElement('div');
+        grid.className = 'gh-grid';
+
+        const tooltip = document.createElement('div');
+        tooltip.className = 'gh-tooltip';
+
+        const dateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+        const showTooltip = (e, day) => {
+          const label = day.count === 0 ? 'No contributions' : day.count.toLocaleString() + (day.count === 1 ? ' contribution' : ' contributions');
+          tooltip.textContent = label + ' on ' + dateFormatter.format(new Date(day.date + 'T00:00:00'));
+          tooltip.classList.add('is-visible');
+          positionTooltip(e);
+        };
+        const positionTooltip = (e) => {
+          const rect = mount.getBoundingClientRect();
+          tooltip.style.left = (e.clientX - rect.left + mount.scrollLeft) + 'px';
+          tooltip.style.top = (e.clientY - rect.top) + 'px';
+        };
+        const hideTooltip = () => tooltip.classList.remove('is-visible');
+
+        weeks.forEach((w, wi) => {
+          w.forEach((day, di) => {
+            const cell = document.createElement('div');
+            cell.className = 'gh-cell';
+            cell.style.gridColumn = String(wi + 1);
+            cell.style.gridRow = String(di + 1);
+            if (!day) { cell.classList.add('gh-cell--empty'); grid.appendChild(cell); return; }
+            cell.style.background = LEVEL_COLORS[day.level] || LEVEL_COLORS[0];
+            cell.addEventListener('mouseenter', (e) => showTooltip(e, day));
+            cell.addEventListener('mousemove', positionTooltip);
+            cell.addEventListener('mouseleave', hideTooltip);
+            grid.appendChild(cell);
+          });
+        });
+
+        mount.appendChild(grid);
+        mount.appendChild(tooltip);
+        // Show the most recent weeks by default instead of the oldest, sparsest ones.
+        mount.scrollLeft = mount.scrollWidth;
+      })
+      .catch((err) => {
+        console.warn('GitHub contributions failed to load:', err);
+        totalEl.textContent = '';
+      });
+  }
+
+  // TiltedCard (React Bits) on the About photo: cursor-tracked 3D tilt with spring
+  // physics, replicating framer-motion's useSpring via a plain rAF-stepped spring
+  // integrator (semi-implicit Euler) since the site has no motion library.
+  function initTiltedCard(reduced) {
+    const mount = document.getElementById('aboutPhoto');
+    if (!mount || reduced) return;
+
+    const ROTATE_AMPLITUDE = 14;
+    const SCALE_ON_HOVER = 1.08;
+    const SPRING = { stiffness: 100, damping: 30, mass: 2 };
+    const CAPTION_ROTATE_SPRING = { stiffness: 350, damping: 30, mass: 1 };
+    const OPACITY_SPRING = { stiffness: 170, damping: 20, mass: 1 };
+
+    mount.innerHTML =
+      '<div class="tilted-card-inner">' +
+      '<img class="tilted-card-img" src="uploads/rudra-photo.jpg" alt="Rudra Solanki">' +
+      '</div>' +
+      '<figcaption class="tilted-card-caption">Rudra Solanki</figcaption>';
+
+    const inner = mount.querySelector('.tilted-card-inner');
+    const caption = mount.querySelector('.tilted-card-caption');
+
+    const makeSpring = (value, cfg) => ({ value, target: value, velocity: 0, stiffness: cfg.stiffness, damping: cfg.damping, mass: cfg.mass });
+    const stepSpring = (s, dt) => {
+      const force = -s.stiffness * (s.value - s.target);
+      const dampingForce = -s.damping * s.velocity;
+      s.velocity += ((force + dampingForce) / s.mass) * dt;
+      s.value += s.velocity * dt;
+    };
+    const isSettled = (s) => Math.abs(s.value - s.target) < 0.001 && Math.abs(s.velocity) < 0.001;
+
+    const rotateX = makeSpring(0, SPRING);
+    const rotateY = makeSpring(0, SPRING);
+    const scale = makeSpring(1, SPRING);
+    const opacity = makeSpring(0, OPACITY_SPRING);
+    const rotateFig = makeSpring(0, CAPTION_ROTATE_SPRING);
+    const springs = [rotateX, rotateY, scale, opacity, rotateFig];
+
+    let capX = 0, capY = 0, lastY = 0, running = false, lastTime = null;
+
+    const render = () => {
+      inner.style.transform = 'rotateX(' + rotateX.value.toFixed(3) + 'deg) rotateY(' + rotateY.value.toFixed(3) + 'deg) scale(' + scale.value.toFixed(4) + ')';
+      caption.style.transform = 'translate(' + capX.toFixed(1) + 'px, ' + capY.toFixed(1) + 'px) rotate(' + rotateFig.value.toFixed(2) + 'deg)';
+      caption.style.opacity = String(opacity.value);
+    };
+
+    const tick = (now) => {
+      if (lastTime == null) lastTime = now;
+      const dt = Math.min((now - lastTime) / 1000, 1 / 30);
+      lastTime = now;
+      springs.forEach((s) => stepSpring(s, dt));
+      render();
+      if (springs.every(isSettled)) { running = false; lastTime = null; return; }
+      requestAnimationFrame(tick);
+    };
+    const wake = () => { if (!running) { running = true; requestAnimationFrame(tick); } };
+
+    mount.addEventListener('pointermove', (e) => {
+      if (e.pointerType !== 'mouse') return;
+      const rect = mount.getBoundingClientRect();
+      const offsetX = e.clientX - rect.left - rect.width / 2;
+      const offsetY = e.clientY - rect.top - rect.height / 2;
+      rotateX.target = (offsetY / (rect.height / 2)) * -ROTATE_AMPLITUDE;
+      rotateY.target = (offsetX / (rect.width / 2)) * ROTATE_AMPLITUDE;
+      capX = e.clientX - rect.left;
+      capY = e.clientY - rect.top;
+      const velocityY = offsetY - lastY;
+      rotateFig.target = -velocityY * 0.6;
+      lastY = offsetY;
+      wake();
+    });
+    mount.addEventListener('pointerenter', (e) => {
+      if (e.pointerType !== 'mouse') return;
+      scale.target = SCALE_ON_HOVER;
+      opacity.target = 1;
+      wake();
+    });
+    mount.addEventListener('pointerleave', (e) => {
+      if (e.pointerType !== 'mouse') return;
+      opacity.target = 0;
+      scale.target = 1;
+      rotateX.target = 0;
+      rotateY.target = 0;
+      rotateFig.target = 0;
+      wake();
+    });
   }
 
   function initPillNav() {
@@ -347,39 +629,41 @@
   // Fill in real project URLs here once you have them — placeholders link nowhere yet.
   const PROJECTS = [
     {
-      title: 'Drifting Oracle',
-      blurb: 'Drift-aware credit-risk scoring system using Population Stability Index to auto-trigger XGBoost retraining, improving AUC from 0.73 to 0.76.',
-      tags: ['FastAPI', 'Python', 'Databricks', 'XGBoost', 'LangGraph'],
+      title: 'The Drifting Oracle',
+      category: 'Credit Risk / MLOps',
+      blurb: 'Drift-aware credit-risk system monitoring 7 features via Population Stability Index, triggering Champion/Challenger XGBoost retraining and improving AUC from 0.73 to 0.76. Deployed with Docker, Kubernetes, and Prefect, with Databricks Unity Catalog, MLflow, and a 47-test CI/CD pytest suite. Includes a LangGraph RAG agent using ChromaDB and Llama/Gemini to generate regulatory-grounded loan-rejection explanations with automated hallucination detection.',
+      tags: ['Python', 'FastAPI', 'Databricks', 'XGBoost', 'Docker', 'Kubernetes', 'Prefect', 'LangGraph', 'ChromaDB'],
+      image: 'assets/drifting-oracle.png',
+      link: 'https://github.com/rudra995/The-Drifting-Oracle'
+    },
+    {
+      title: 'Pitwall',
+      category: 'Multi-Agent RAG',
+      blurb: 'Multi-agent RAG system with 6 specialized agents and an orchestrator using ChromaDB and Groq LLM APIs to answer race-analytics queries over 30K+ records. Backed by a 15-endpoint FastAPI service with SQLite and Python ETL pipelines to ingest, process, and serve structured race data.',
+      tags: ['Python', 'FastAPI', 'SQLite', 'ChromaDB', 'Groq'],
+      image: 'assets/pitwall.png',
       link: '#'
     },
     {
-      title: 'PitWall',
-      blurb: 'Multi-agent RAG system (6 agents + orchestrator) answering race-analytics queries over 30K+ records via ChromaDB and Groq LLMs.',
-      tags: ['Python', 'FastAPI', 'React', 'ChromaDB', 'Groq'],
+      title: 'ShockProof',
+      category: 'Risk Analytics',
+      blurb: 'Supply chain risk platform using NetworkX and Monte Carlo simulations across 101 suppliers, 501 products, and 1.5K+ relationships to compute P95 revenue-at-risk. Risk scoring validated with bootstrap resampling and Wilcoxon testing, achieving 95.6% precision@10; deployed via PostgreSQL, FastAPI, React, and Docker.',
+      tags: ['Python', 'PostgreSQL', 'NetworkX', 'FastAPI', 'React', 'Docker'],
       link: '#'
+    },
+    {
+      title: 'MoneyPal',
+      category: 'Expense Tracker',
+      blurb: 'A one-tap expense tracker built for my younger sister as she left for college for the first time, to help her track her money. FastAPI + async SQLAlchemy backend with 6 routers, 18 REST endpoints, and 4 models; Google OAuth sign-in auto-provisions 10 categories and a ₹10,000 default budget. IST-aware analytics (day/week/month/year) break down spending by category and trend. React 19 + TypeScript frontend (~2,200 LOC), installable as a PWA, with Recharts and TanStack Query.',
+      tags: ['Python', 'FastAPI', 'SQLAlchemy', 'PostgreSQL', 'JWT', 'Google OAuth', 'Cron Jobs', 'React', 'TypeScript', 'Vite', 'Tailwind CSS', 'Recharts', 'Docker'],
+      link: '#',
+      liveLink: '#'
     },
     {
       title: 'QuantForge',
-      blurb: 'Event-driven backtesting engine simulating trade execution across a 4-stage pipeline, validated with 126 pytest tests.',
-      tags: ['Python', 'FastAPI', 'PostgreSQL', 'Redis', 'Docker'],
-      link: '#'
-    },
-    {
-      title: 'Placeholder Four',
-      blurb: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
-      tags: ['Lorem', 'Ipsum', 'Dolor', 'Sit'],
-      link: '#'
-    },
-    {
-      title: 'Placeholder Five',
-      blurb: 'Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.',
-      tags: ['Lorem', 'Ipsum', 'Dolor'],
-      link: '#'
-    },
-    {
-      title: 'Placeholder Six',
-      blurb: 'Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.',
-      tags: ['Lorem', 'Ipsum', 'Dolor', 'Sit', 'Amet'],
+      category: 'Quant Backtesting',
+      blurb: 'Quantitative backtesting platform that lets traders validate strategies against real historical data before risking capital, computing Sharpe, Sortino, CAGR, max drawdown, and VaR through an event-driven (Market → Signal → Order → Fill) simulation engine with realistic slippage and commissions. In live testing it correctly flagged a naive SMA crossover on AAPL (2023) as a losing setup (-22.8% return, -1.19 Sharpe) against +54.8% and 2.32 Sharpe for buy-and-hold, and in a 2022 TSLA drawdown cut peak-to-trough loss nearly in half (-47.6% vs -73.0%). Every run auto-generates a full risk report and equity curve via a typed FastAPI backend and Next.js dashboard, backed by a 150-test suite with a 100% pass rate.',
+      tags: ['Python', 'FastAPI', 'PostgreSQL', 'Redis', 'SQLAlchemy', 'Next.js', 'TypeScript', 'Tailwind CSS', 'Docker', 'pytest'],
       link: '#'
     }
   ];
@@ -403,24 +687,31 @@
       '</div>' +
       '<span class="project-modal-window-title"></span>' +
       '</div>' +
+      '<div class="project-modal-scroll">' +
+      '<div class="project-modal-image"><span class="initials"></span><img class="project-modal-img" alt="" /></div>' +
       '<div class="project-modal-content">' +
-      '<div class="project-modal-image"><span class="initials"></span></div>' +
-      '<div class="project-modal-body">' +
+      '<p class="project-modal-eyebrow"></p>' +
       '<h3 class="project-modal-title" id="projectModalTitle"></h3>' +
       '<p class="project-modal-blurb"></p>' +
       '<div class="project-modal-tags"></div>' +
-      '<a class="btn btn-primary project-modal-link" target="_blank" rel="noopener">View Project</a>' +
+      '<div class="project-modal-links">' +
+      '<a class="btn btn-primary project-modal-live-link" target="_blank" rel="noopener">Live<span class="project-modal-link-arrow" aria-hidden="true">→</span></a>' +
+      '<a class="project-modal-link" target="_blank" rel="noopener">Code<span class="project-modal-link-arrow" aria-hidden="true">→</span></a>' +
+      '</div>' +
       '</div></div></div>';
     document.body.appendChild(modal);
 
     const backdrop = modal.querySelector('.project-modal-backdrop');
     const closeBtn = modal.querySelector('.tl-close');
     const windowTitleEl = modal.querySelector('.project-modal-window-title');
-    const imgEl = modal.querySelector('.project-modal-image .initials');
+    const initialsEl = modal.querySelector('.project-modal-image .initials');
+    const imgEl = modal.querySelector('.project-modal-img');
+    const eyebrowEl = modal.querySelector('.project-modal-eyebrow');
     const titleEl = modal.querySelector('.project-modal-title');
     const blurbEl = modal.querySelector('.project-modal-blurb');
     const tagsEl = modal.querySelector('.project-modal-tags');
     const linkEl = modal.querySelector('.project-modal-link');
+    const liveLinkEl = modal.querySelector('.project-modal-live-link');
 
     let isOpen = false;
     let activeTrigger = null;
@@ -429,8 +720,20 @@
     const open = (project, triggerEl, onClose) => {
       activeTrigger = triggerEl;
       onCloseExtra = onClose || null;
-      imgEl.textContent = project.title.slice(0, 2).toUpperCase();
+      initialsEl.textContent = project.title.slice(0, 1).toUpperCase();
+      if (project.image) {
+        imgEl.src = project.image;
+        imgEl.alt = project.title;
+        imgEl.style.display = 'block';
+        initialsEl.style.display = 'none';
+      } else {
+        imgEl.removeAttribute('src');
+        imgEl.style.display = 'none';
+        initialsEl.style.display = '';
+      }
       windowTitleEl.textContent = project.title;
+      eyebrowEl.textContent = project.category || '';
+      eyebrowEl.style.display = project.category ? '' : 'none';
       titleEl.textContent = project.title;
       blurbEl.textContent = project.blurb;
       tagsEl.innerHTML = '';
@@ -441,6 +744,12 @@
         tagsEl.appendChild(span);
       });
       linkEl.href = project.link;
+      if (project.liveLink) {
+        liveLinkEl.href = project.liveLink;
+        liveLinkEl.style.display = '';
+      } else {
+        liveLinkEl.style.display = 'none';
+      }
       modal.classList.add('is-open');
       modal.setAttribute('aria-hidden', 'false');
       isOpen = true;
