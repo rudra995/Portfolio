@@ -335,6 +335,7 @@
         tooltip.className = 'gh-tooltip';
 
         const dateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        const monthFormatter = new Intl.DateTimeFormat('en-US', { month: 'short' });
 
         const showTooltip = (e, day) => {
           const label = day.count === 0 ? 'No contributions' : day.count.toLocaleString() + (day.count === 1 ? ' contribution' : ' contributions');
@@ -364,7 +365,44 @@
           });
         });
 
-        mount.appendChild(grid);
+        // Month labels: one per week column where a new month begins, aligned to
+        // the grid's columns via the same padding-left offset as the weekday gutter.
+        const months = document.createElement('div');
+        months.className = 'gh-months';
+        let lastMonth = -1;
+        weeks.forEach((w, wi) => {
+          const firstDay = w.find((d) => d);
+          if (!firstDay) return;
+          const m = new Date(firstDay.date + 'T00:00:00').getMonth();
+          if (m === lastMonth) return;
+          lastMonth = m;
+          const label = document.createElement('span');
+          label.className = 'gh-month-label';
+          label.style.gridColumn = String(wi + 1);
+          label.textContent = monthFormatter.format(new Date(firstDay.date + 'T00:00:00'));
+          months.appendChild(label);
+        });
+
+        const weekdays = document.createElement('div');
+        weekdays.className = 'gh-weekdays';
+        ['', 'Mon', '', 'Wed', '', 'Fri', ''].forEach((text) => {
+          const label = document.createElement('span');
+          label.className = 'gh-weekday-label';
+          label.textContent = text;
+          weekdays.appendChild(label);
+        });
+
+        const body = document.createElement('div');
+        body.className = 'gh-body';
+        body.appendChild(weekdays);
+        body.appendChild(grid);
+
+        const inner = document.createElement('div');
+        inner.className = 'gh-chart-inner';
+        inner.appendChild(months);
+        inner.appendChild(body);
+
+        mount.appendChild(inner);
         mount.appendChild(tooltip);
         // Show the most recent weeks by default instead of the oldest, sparsest ones.
         mount.scrollLeft = mount.scrollWidth;

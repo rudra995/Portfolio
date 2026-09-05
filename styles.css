@@ -537,9 +537,16 @@ section { padding-block: calc(3.2*var(--leading)); position:relative; z-index:1;
 .edu-org-meta { display:block; font-size:14px; color: color-mix(in srgb, var(--color-text) 60%, transparent); margin-top:3px; }
 .edu-coursework { font-size:14px; line-height:1.75; color: color-mix(in srgb, var(--color-text) 66%, transparent); margin-top:14px; max-width:64ch; }
 
-.github-card { display:flex; flex-direction:column; align-items:flex-start; gap:16px; width:100%; }
+.github-card { display:flex; flex-direction:column; align-items:flex-start; gap:20px; width:100%; }
+.github-card-head { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; width:100%; }
 .github-total { font-family: var(--font-heading); font-weight:700; font-size:15px; color: var(--color-text); margin:0; }
 .github-chart-scroll { position:relative; width:100%; overflow-x:auto; padding-bottom:4px; }
+.gh-chart-inner { display:flex; flex-direction:column; gap:6px; width:max-content; }
+.gh-months { position:relative; display:grid; grid-auto-flow:column; grid-auto-columns:11px; gap:3px; padding-left:32px; height:14px; }
+.gh-month-label { font-size:11px; font-weight:600; color: color-mix(in srgb, var(--color-text) 55%, transparent); white-space:nowrap; }
+.gh-body { display:flex; gap:6px; align-items:flex-start; }
+.gh-weekdays { display:grid; grid-template-rows: repeat(7, 11px); gap:3px; width:26px; flex-shrink:0; }
+.gh-weekday-label { font-size:10px; line-height:11px; color: color-mix(in srgb, var(--color-text) 45%, transparent); text-align:right; }
 .gh-grid { display:grid; grid-auto-flow:column; grid-auto-columns:11px; grid-template-rows: repeat(7, 11px); gap:3px; width:max-content; }
 .gh-cell { width:11px; height:11px; border-radius:2px; cursor:default; }
 .gh-cell--empty { background: color-mix(in srgb, var(--color-text) 9%, transparent); }
