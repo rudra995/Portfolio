@@ -562,9 +562,9 @@ section { padding-block: calc(3.2*var(--leading)); position:relative; z-index:1;
   position: sticky; top: 0; height: 100vh; overflow: hidden;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px;
 }
-.coverflow-stage { position: relative; width: 100%; height: min(52vw, 420px); max-width: 1100px; perspective: 1400px; }
+.coverflow-stage { position: relative; width: 100%; height: min(62vw, 620px); max-width: 1320px; perspective: 1400px; }
 .coverflow-track { position: absolute; inset: 0; }
-.coverflow-slide { position: absolute; top: 50%; left: 50%; width: min(64vw, 400px); height: 100%; }
+.coverflow-slide { position: absolute; top: 50%; left: 50%; width: min(82vw, 960px); height: 100%; }
 .coverflow-card {
   width: 100%; height: 100%; display: flex; flex-direction: column; border-radius: var(--radius-lg); overflow: hidden;
   background: linear-gradient(155deg, color-mix(in srgb, var(--color-accent) 20%, var(--color-surface)), color-mix(in srgb, var(--color-text) 6%, var(--color-surface)));
@@ -574,10 +574,9 @@ section { padding-block: calc(3.2*var(--leading)); position:relative; z-index:1;
 .dashboard-link { display:block; height:100%; color:inherit; text-decoration:none; }
 .dashboard-card { transition: transform .3s ease, border-color .3s ease; }
 .dashboard-link:hover .dashboard-card, .dashboard-link:focus-visible .dashboard-card { transform:translateY(-8px); border-color:var(--color-accent); }
-.dashboard-image { width:100%; height:230px; object-fit:cover; display:block; border-bottom:1px solid color-mix(in srgb, var(--color-text) 14%, transparent); }
-.dashboard-info { flex:1; padding:18px 20px; display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:8px; }
+.dashboard-image { width:100%; min-height:0; flex:1; object-fit:contain; display:block; background:color-mix(in srgb, var(--color-bg) 84%, black); border-bottom:1px solid color-mix(in srgb, var(--color-text) 14%, transparent); }
+.dashboard-info { flex:none; min-height:48px; padding:10px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
 .dashboard-platform { color:var(--color-accent); font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
-.dashboard-title { margin:0; font-size:18px; line-height:1.25; color:var(--color-text); }
 .dashboard-note, .dashboard-cta { font-size:13px; color:color-mix(in srgb, var(--color-text) 70%, transparent); }
 .dashboard-cta { transition:color .2s ease; }
 .dashboard-link:hover .dashboard-cta, .dashboard-link:focus-visible .dashboard-cta { color:var(--color-accent); }
@@ -616,7 +615,7 @@ section { padding-block: calc(3.2*var(--leading)); position:relative; z-index:1;
 .dashboards-section.is-reduced .coverflow-stage { height: auto; overflow-x: auto; scroll-snap-type: x mandatory; perspective: none; }
 .dashboards-section.is-reduced .coverflow-track { position: static; display: flex; gap: 22px; padding-inline: 8vw; }
 .dashboards-section.is-reduced .coverflow-slide {
-  position: relative; top: auto; left: auto; flex: none; width: min(76vw, 360px); height: min(60vw, 340px);
+  position: relative; top: auto; left: auto; flex: none; width: min(88vw, 700px); height: auto; aspect-ratio:16 / 10;
   transform: none !important; opacity: 1 !important; scroll-snap-align: center;
 }
 
