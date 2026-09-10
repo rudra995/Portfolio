@@ -404,8 +404,22 @@
 
         mount.appendChild(inner);
         mount.appendChild(tooltip);
-        // Show the most recent weeks by default instead of the oldest, sparsest ones.
-        mount.scrollLeft = mount.scrollWidth;
+
+        // Size cells to fill the card's width exactly (rather than a fixed px size
+        // that leaves dead space or forces a scrollbar) by deriving a cell size from
+        // the available width, the weekday-label gutter, and the week count.
+        const GUTTER = 32; // .gh-weekdays width (26px) + .gh-body gap (6px)
+        const GAP = 3;
+        const MIN_CELL = 8;
+        const fitChart = () => {
+          const available = mount.clientWidth - GUTTER;
+          const raw = (available - (weeks.length - 1) * GAP) / weeks.length;
+          const cell = Math.max(MIN_CELL, Math.floor(raw));
+          mount.style.setProperty('--gh-cell', cell + 'px');
+          mount.style.setProperty('--gh-gap', GAP + 'px');
+        };
+        fitChart();
+        window.addEventListener('resize', fitChart);
       })
       .catch((err) => {
         console.warn('GitHub contributions failed to load:', err);
@@ -604,7 +618,7 @@
     { cmd: 'cat education.txt', out: 'B.Tech IT, Manipal Institute of Technology · 2027' },
     { cmd: 'cat status.txt', out: 'Open to Data Analytics & ML internships' },
     { cmd: 'ls skills/', out: 'python fastapi docker langgraph databricks' },
-    { cmd: 'cat contact.txt', out: 'rudrasolanki@outlook.in' }
+    { cmd: 'cat contact.txt', out: 'rudra.solanki.m@gmail.com' }
   ];
 
   function typeTerminal(reduced) {
