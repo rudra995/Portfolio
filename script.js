@@ -701,6 +701,7 @@
       category: 'Risk Analytics',
       blurb: 'Supply chain risk platform using NetworkX and Monte Carlo simulations across 101 suppliers, 501 products, and 1.5K+ relationships to compute P95 revenue-at-risk. Risk scoring validated with bootstrap resampling and Wilcoxon testing, achieving 95.6% precision@10; deployed via PostgreSQL, FastAPI, React, and Docker.',
       tags: ['Python', 'PostgreSQL', 'NetworkX', 'FastAPI', 'React', 'Docker'],
+      image: 'Images/Shockproof.jpeg',
       link: '#'
     },
     {
@@ -708,6 +709,7 @@
       category: 'Expense Tracker',
       blurb: 'A one-tap expense tracker built for my younger sister as she left for college for the first time, to help her track her money. FastAPI + async SQLAlchemy backend with 6 routers, 18 REST endpoints, and 4 models; Google OAuth sign-in auto-provisions 10 categories and a ₹10,000 default budget. IST-aware analytics (day/week/month/year) break down spending by category and trend. React 19 + TypeScript frontend (~2,200 LOC), installable as a PWA, with Recharts and TanStack Query.',
       tags: ['Python', 'FastAPI', 'SQLAlchemy', 'PostgreSQL', 'JWT', 'Google OAuth', 'Cron Jobs', 'React', 'TypeScript', 'Vite', 'Tailwind CSS', 'Recharts', 'Docker'],
+      image: 'Images/Moneypal-thumb.png',
       link: '#',
       liveLink: '#'
     },
@@ -716,6 +718,7 @@
       category: 'Quant Backtesting',
       blurb: 'Quantitative backtesting platform that lets traders validate strategies against real historical data before risking capital, computing Sharpe, Sortino, CAGR, max drawdown, and VaR through an event-driven (Market → Signal → Order → Fill) simulation engine with realistic slippage and commissions. In live testing it correctly flagged a naive SMA crossover on AAPL (2023) as a losing setup (-22.8% return, -1.19 Sharpe) against +54.8% and 2.32 Sharpe for buy-and-hold, and in a 2022 TSLA drawdown cut peak-to-trough loss nearly in half (-47.6% vs -73.0%). Every run auto-generates a full risk report and equity curve via a typed FastAPI backend and Next.js dashboard, backed by a 150-test suite with a 100% pass rate.',
       tags: ['Python', 'FastAPI', 'PostgreSQL', 'Redis', 'SQLAlchemy', 'Next.js', 'TypeScript', 'Tailwind CSS', 'Docker', 'pytest'],
+      image: 'Images/Quantforge.png',
       link: '#'
     }
   ];
